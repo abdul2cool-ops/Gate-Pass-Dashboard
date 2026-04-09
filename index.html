@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gate Pass Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .vendor-row:hover .vendor-tooltip { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">Gate Pass Application Status</h1>
+            <div class="flex gap-4">
+                <div class="bg-white p-3 rounded shadow-sm border">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase">Old File</label>
+                    <input type="file" id="oldFile" accept=".xlsx, .xls" class="text-sm">
+                </div>
+                <div class="bg-white p-3 rounded shadow-sm border">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase text-blue-600">Latest File</label>
+                    <input type="file" id="latestFile" accept=".xlsx, .xls" class="text-sm">
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                <p class="text-sm text-gray-500 font-medium uppercase">Total Gate Passes Received</p>
+                <h2 id="totalReceived" class="text-4xl font-bold text-gray-800">0</h2>
+                <p class="text-xs text-gray-400 mt-1">Based on latest upload</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                <p class="text-sm text-gray-500 font-medium uppercase">Received in One Day</p>
+                <h2 id="oneDayReceived" class="text-4xl font-bold text-gray-800">0</h2>
+                <p class="text-xs text-gray-400 mt-1">Difference (Latest - Old)</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">UD Status</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span>Total Approved:</span> <span id="ud_total" class="font-semibold">0</span></div>
+                    <div class="flex justify-between text-green-600 text-sm font-medium"><span>In One Day:</span> <span id="ud_day">0</span></div>
+                    <div class="flex justify-between text-orange-600 text-sm"><span>Pending:</span> <span id="ud_pending">0</span></div>
+                    <div class="flex justify-between text-red-500 text-xs italic"><span>Rejected/Vendor:</span> <span id="ud_bal">0</span></div>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">FS Status</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span>Total Approved:</span> <span id="fs_total" class="font-semibold">0</span></div>
+                    <div class="flex justify-between text-green-600 text-sm font-medium"><span>In One Day:</span> <span id="fs_day">0</span></div>
+                    <div class="flex justify-between text-orange-600 text-sm"><span>Pending:</span> <span id="fs_pending">0</span></div>
+                    <div class="flex justify-between text-red-500 text-xs italic"><span>Rejected/Vendor:</span> <span id="fs_bal">0</span></div>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">ER Status</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span>Total Approved:</span> <span id="er_total" class="font-semibold">0</span></div>
+                    <div class="flex justify-between text-green-600 text-sm font-medium"><span>In One Day:</span> <span id="er_day">0</span></div>
+                    <div class="flex justify-between text-orange-600 text-sm"><span>Pending:</span> <span id="er_pending">0</span></div>
+                    <div class="flex justify-between text-red-500 text-xs italic"><span>Rejected/Vendor:</span> <span id="er_bal">0</span></div>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">ACT Status</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span>Total Approved:</span> <span id="act_total" class="font-semibold">0</span></div>
+                    <div class="flex justify-between text-green-600 text-sm font-medium"><span>In One Day:</span> <span id="act_day">0</span></div>
+                    <div class="flex justify-between text-orange-600 text-sm"><span>Pending:</span> <span id="act_pending">0</span></div>
+                    <div class="mt-3 pt-2 border-t">
+                        <div class="flex justify-between text-blue-700 font-bold"><span>Passes Printed:</span> <span id="passes_printed">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gray-50">
+                <h3 class="font-bold text-gray-700">Vendor Wise Breakup (Hover for Details)</h3>
+            </div>
+            <table class="w-full text-left">
+                <thead class="bg-gray-100 text-xs uppercase text-gray-600">
+                    <tr>
+                        <th class="px-6 py-3">Vendor Name</th>
+                        <th class="px-6 py-3 text-center">Total Passes</th>
+                        <th class="px-6 py-3 text-center">ACT Approved</th>
+                        <th class="px-6 py-3 text-center">Printed</th>
+                    </tr>
+                </thead>
+                <tbody id="vendorTableBody">
+                    <tr>
+                        <td colspan="4" class="px-6 py-10 text-center text-gray-400">Upload files to see breakdown</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let oldData = null;
+        let latestData = null;
+
+        document.getElementById('oldFile').addEventListener('change', (e) => handleFile(e, 'old'));
+        document.getElementById('latestFile').addEventListener('change', (e) => handleFile(e, 'latest'));
+
+        async function handleFile(e, type) {
+            const file = e.target.files;
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (type === 'old') oldData = jsonData;
+            else latestData = jsonData;
+
+            if (latestData) calculateMetrics();
+        }
+
+        function calculateMetrics() {
+            const stats = processFileData(latestData);
+            const oldStats = oldData ? processFileData(oldData) : null;
+
+            // 1. Total Received
+            document.getElementById('totalReceived').innerText = latestData.length;
+
+            // 2. Total in one day
+            if (oldData) {
+                document.getElementById('oneDayReceived').innerText = latestData.length - oldData.length;
+            }
+
+            // 3. Status Pipeline
+            const stages = ['ud', 'fs', 'er', 'act'];
+            stages.forEach(s => {
+                const total = stats.approvals[s];
+                const dayDiff = oldStats ? (total - oldStats.approvals[s]) : total;
+                
+                document.getElementById(`${s}_total`).innerText = total;
+                document.getElementById(`${s}_day`).innerText = dayDiff;
+                
+                // Assuming "Pending" is Total Received - Stage Approved (simplified logic)
+                const pending = latestData.length - total;
+                document.getElementById(`${s}_pending`).innerText = pending;
+                
+                if(s !== 'act') {
+                    document.getElementById(`${s}_bal`).innerText = Math.max(0, pending - 5); // Placeholder logic for rejected
+                }
+            });
+
+            // 3e. Passes Printed
+            document.getElementById('passes_printed').innerText = stats.printed;
+
+            // 4. Vendor Breakdown
+            renderVendorTable(stats.vendors, oldStats ? oldStats.vendors : null);
+        }
+
+        function processFileData(data) {
+            let stats = {
+                approvals: { ud: 0, fs: 0, er: 0, act: 0 },
+                printed: 0,
+                vendors: {}
+            };
+
+            data.forEach(row => {
+                const vName = row['Vendor Name'] || row['Vendor'] || 'Unknown';
+                if (!stats.vendors[vName]) {
+                    stats.vendors[vName] = { count: 0, ud: 0, fs: 0, er: 0, act: 0, printed: 0 };
+                }
+
+                stats.vendors[vName].count++;
+
+                // Check for approvals (looking for "Approved" or "Yes" in columns containing stage names)
+                Object.keys(row).forEach(key => {
+                    const val = String(row[key]).toLowerCase();
+                    const isApp = val.includes('approved') || val === 'yes' || val === 'y';
+                    
+                    if (key.includes('UD') && isApp) { stats.approvals.ud++; stats.vendors[vName].ud++; }
+                    if (key.includes('FS') && isApp) { stats.approvals.fs++; stats.vendors[vName].fs++; }
+                    if (key.includes('ER') && isApp) { stats.approvals.er++; stats.vendors[vName].er++; }
+                    if (key.includes('ACT') && isApp) { 
+                        stats.approvals.act++; 
+                        stats.vendors[vName].act++;
+                        // Pass Internal No logic
+                        if(row['Passinternal no'] || row['Pass No']) {
+                            stats.printed++;
+                            stats.vendors[vName].printed++;
+                        }
+                    }
+                });
+            });
+
+            return stats;
+        }
+
+        function renderVendorTable(vendors, oldVendors) {
+            const tbody = document.getElementById('vendorTableBody');
+            tbody.innerHTML = '';
+
+            Object.keys(vendors).forEach(name => {
+                const v = vendors[name];
+                const ov = oldVendors && oldVendors[name] ? oldVendors[name] : { ud:0, fs:0, er:0, act:0 };
+                
+                const tr = document.createElement('tr');
+                tr.className = 'vendor-row border-b hover:bg-blue-50 transition-colors relative cursor-default';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-800">
+                        ${name}
+                        <div class="vendor-tooltip hidden absolute z-10 left-40 top-0 bg-gray-900 text-white p-4 rounded shadow-xl w-64 text-xs">
+                            <p class="font-bold mb-2 border-b border-gray-600 pb-1">${name} Pipeline</p>
+                            <div class="space-y-1">
+                                <div class="flex justify-between"><span>UD Approved (New):</span> <span>${v.ud} (+${v.ud - ov.ud})</span></div>
+                                <div class="flex justify-between"><span>FS Approved (New):</span> <span>${v.fs} (+${v.fs - ov.fs})</span></div>
+                                <div class="flex justify-between"><span>ER Approved (New):</span> <span>${v.er} (+${v.er - ov.er})</span></div>
+                                <div class="flex justify-between"><span>ACT Approved (New):</span> <span>${v.act} (+${v.act - ov.act})</span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">${v.count}</td>
+                    <td class="px-6 py-4 text-center text-green-600 font-semibold">${v.act}</td>
+                    <td class="px-6 py-4 text-center text-blue-600 font-semibold">${v.printed}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
