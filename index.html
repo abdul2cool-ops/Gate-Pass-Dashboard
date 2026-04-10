@@ -3,100 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contractor Gate Pass Analytics</title>
+    <title>Gate Pass Status Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .modal { transition: opacity 0.25s ease; }
         body.modal-active { overflow: hidden; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-20">
+<body class="bg-gray-50 min-h-screen pb-20 font-sans">
 
-    <div class="max-w-6xl mx-auto px-4 py-10">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Gate Pass Application Dashboard</h1>
-                <p class="text-gray-500 text-sm">Contractor-wise PO Status Tracking</p>
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Gate Pass Analytics</h1>
+                <p class="text-gray-500">Real-time status tracking and contractor performance</p>
             </div>
-            <div class="flex gap-4 bg-white p-3 rounded-lg shadow-sm border">
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Old File</label>
-                    <input type="file" id="oldFile" accept=".xlsx, .xls" class="text-xs">
+            <div class="flex gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="pr-4 border-r border-gray-100">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">1. Old File</label>
+                    <input type="file" id="oldFile" accept=".xlsx, .xls" class="text-xs block w-full text-gray-500 file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer">
                 </div>
-                <div class="border-l pl-4">
-                    <label class="block text-[10px] font-bold text-blue-500 uppercase">Latest File</label>
-                    <input type="file" id="latestFile" accept=".xlsx, .xls" class="text-xs">
+                <div>
+                    <label class="block text-[10px] font-bold text-blue-500 uppercase mb-1">2. Latest File</label>
+                    <input type="file" id="latestFile" accept=".xlsx, .xls" class="text-xs block w-full text-gray-500 file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-500">
-                <p class="text-sm text-gray-500 font-semibold uppercase">Total Gate Passes (Latest)</p>
-                <h2 id="totalReceived" class="text-4xl font-black text-gray-800">0</h2>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-blue-600">
+                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Received (Current)</p>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="totalReceived" class="text-5xl font-black text-gray-900">0</h2>
+                    <span class="text-gray-400 font-medium">applications</span>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-500">
-                <p class="text-sm text-gray-500 font-semibold uppercase">Received in One Day</p>
-                <h2 id="oneDayReceived" class="text-4xl font-black text-gray-800">0</h2>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-emerald-500">
+                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Received In One Day</p>
+                <div class="flex items-baseline gap-2">
+                    <h2 id="oneDayReceived" class="text-5xl font-black text-gray-900">0</h2>
+                    <span class="text-emerald-500 font-bold" id="diffLabel">New</span>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-md border overflow-hidden">
-            <div class="px-6 py-4 border-b bg-gray-50">
-                <h3 class="font-bold text-gray-700">Contractor Wise Report</h3>
-                <p class="text-xs text-gray-400">Click on a contractor name to view detailed approval status</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm stat-card">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded">STAGE 1</span>
+                    <span id="udDay" class="text-xs font-bold text-emerald-600">+0 today</span>
+                </div>
+                <h3 class="text-gray-500 text-xs font-bold uppercase">UD Approved</h3>
+                <p id="totalUD" class="text-2xl font-bold text-gray-800">0</p>
             </div>
-            <table class="w-full text-left">
-                <thead class="bg-gray-200 text-gray-700 text-xs uppercase">
-                    <tr>
-                        <th class="px-6 py-4">Contractor / Vendor Name</th>
-                        <th class="px-6 py-4 text-center">Total Apps</th>
-                        <th class="px-6 py-4 text-center">Printed (PassInternalNo)</th>
-                    </tr>
-                </thead>
-                <tbody id="vendorTableBody" class="divide-y divide-gray-100">
-                    <tr>
-                        <td colspan="3" class="px-6 py-10 text-center text-gray-400 italic">Please upload files to populate data...</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm stat-card">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded">STAGE 2</span>
+                    <span id="fsDay" class="text-xs font-bold text-emerald-600">+0 today</span>
+                </div>
+                <h3 class="text-gray-500 text-xs font-bold uppercase">FS Approved</h3>
+                <p id="totalFS" class="text-2xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm stat-card">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded">STAGE 3</span>
+                    <span id="erDay" class="text-xs font-bold text-emerald-600">+0 today</span>
+                </div>
+                <h3 class="text-gray-500 text-xs font-bold uppercase">ER Approved</h3>
+                <p id="totalER" class="text-2xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm stat-card">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded">FINAL</span>
+                    <span id="actDay" class="text-xs font-bold text-emerald-600">+0 today</span>
+                </div>
+                <h3 class="text-gray-500 text-xs font-bold uppercase">ACT Approved</h3>
+                <p id="totalACT" class="text-2xl font-bold text-gray-800">0</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Contractor-wise Performance</h3>
+                    <p class="text-xs text-gray-400">Click row for full UD/FS/ER/ACT breakdown</p>
+                </div>
+                <div id="printTotal" class="text-right">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase block">Total Printed</span>
+                    <span id="mainPrintedCount" class="text-xl font-black text-blue-600">0</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-gray-400 text-[11px] uppercase tracking-widest border-b border-gray-100">
+                            <th class="px-8 py-4 font-semibold">Contractor Name</th>
+                            <th class="px-8 py-4 font-semibold text-center">Total Apps</th>
+                            <th class="px-8 py-4 font-semibold text-center">Printed (PassInternalNo)</th>
+                            <th class="px-8 py-4 font-semibold text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendorTableBody" class="divide-y divide-gray-50">
+                        <tr>
+                            <td colspan="4" class="px-8 py-12 text-center text-gray-400 italic">Waiting for file uploads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div id="detailModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
-        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
-        
-        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-2xl z-50 overflow-y-auto">
-            <div class="modal-content py-6 text-left px-8">
-                <div class="flex justify-between items-center pb-4 border-b">
-                    <p class="text-xl font-bold text-blue-600" id="modalTitle">Contractor Name</p>
-                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+    <div id="detailModal" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div class="modal-overlay absolute inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+        <div class="modal-container bg-white w-full max-w-md rounded-3xl shadow-2xl z-50 overflow-hidden transform transition-all">
+            <div class="p-8">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="modalTitle" class="text-2xl font-black text-gray-900 leading-tight">Contractor</h2>
+                        <p class="text-blue-500 font-bold text-xs uppercase tracking-widest mt-1">Status Breakdown</p>
+                    </div>
+                    <button id="closeModal" class="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </div>
 
-                <div class="py-6 grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 p-3 rounded border">
-                        <p class="text-[10px] uppercase text-gray-400 font-bold">UD Status</p>
-                        <p id="modalUD" class="text-xl font-bold text-gray-700">0</p>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">UD Approved</p>
+                        <p id="modalUD" class="text-2xl font-bold text-gray-800">0</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded border">
-                        <p class="text-[10px] uppercase text-gray-400 font-bold">FS Status</p>
-                        <p id="modalFS" class="text-xl font-bold text-gray-700">0</p>
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">FS Approved</p>
+                        <p id="modalFS" class="text-2xl font-bold text-gray-800">0</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded border">
-                        <p class="text-[10px] uppercase text-gray-400 font-bold">ER Status</p>
-                        <p id="modalER" class="text-xl font-bold text-gray-700">0</p>
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">ER Approved</p>
+                        <p id="modalER" class="text-2xl font-bold text-gray-800">0</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded border">
-                        <p class="text-[10px] uppercase text-gray-400 font-bold">ACT Status</p>
-                        <p id="modalACT" class="text-xl font-bold text-gray-700">0</p>
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">ACT Approved</p>
+                        <p id="modalACT" class="text-2xl font-bold text-gray-800">0</p>
                     </div>
                 </div>
 
-                <div class="bg-blue-600 p-4 rounded-lg text-white text-center">
-                    <p class="text-xs uppercase opacity-80 font-semibold">Passes Printed Count</p>
-                    <p id="modalPrinted" class="text-3xl font-black">0</p>
-                    <p class="text-[10px] mt-1 opacity-70">(Entries with PassInternalno)</p>
+                <div class="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-blue-100 text-xs font-bold uppercase tracking-wider">Passes Printed</p>
+                            <p id="modalPrinted" class="text-4xl font-black">0</p>
+                        </div>
+                        <div class="bg-white/20 p-3 rounded-xl">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -105,7 +167,9 @@
     <script>
         let latestData = [];
         let oldData = [];
-        let vendorStats = {};
+        let contractorStats = {};
+        let globalStats = { ud:0, fs:0, er:0, act:0, printed:0 };
+        let globalOldStats = { ud:0, fs:0, er:0, act:0 };
 
         document.getElementById('oldFile').addEventListener('change', (e) => handleFile(e, 'old'));
         document.getElementById('latestFile').addEventListener('change', (e) => handleFile(e, 'latest'));
@@ -121,87 +185,80 @@
             if (type === 'old') oldData = jsonData;
             else latestData = jsonData;
 
-            if (latestData.length > 0) processAndRender();
+            if (latestData.length > 0) processData();
         }
 
-        function processAndRender() {
-            vendorStats = {};
-            
-            // 1. Calculate Totals
-            document.getElementById('totalReceived').innerText = latestData.length;
-            const diff = latestData.length - (oldData.length || 0);
-            document.getElementById('oneDayReceived').innerText = diff;
+        function processData() {
+            // Reset state
+            contractorStats = {};
+            globalStats = { ud: 0, fs: 0, er: 0, act: 0, printed: 0 };
+            globalOldStats = { ud: 0, fs: 0, er: 0, act: 0 };
 
-            // 2. Process Latest Data for Vendor Breakdown
+            // Process Old File for "In One Day" comparisons
+            oldData.forEach(row => {
+                Object.keys(row).forEach(key => {
+                    const col = key.toUpperCase();
+                    const val = String(row[key]).toLowerCase();
+                    const isApp = val.includes('approved') || val === 'yes' || val === 'y';
+                    if (isApp) {
+                        if (col.includes('UD')) globalOldStats.ud++;
+                        if (col.includes('FS')) globalOldStats.fs++;
+                        if (col.includes('ER')) globalOldStats.er++;
+                        if (col.includes('ACT')) globalOldStats.act++;
+                    }
+                });
+            });
+
+            // Process Latest File
             latestData.forEach(row => {
-                // Find column names dynamically (case insensitive)
-                const vKey = Object.keys(row).find(k => k.toLowerCase().includes('contractor') || k.toLowerCase().includes('vendor')) || 'Unknown';
-                const vName = row[vKey];
+                const cKey = Object.keys(row).find(k => k.toLowerCase().includes('contractor') || k.toLowerCase().includes('vendor')) || 'Unknown';
+                const cName = row[cKey];
 
-                if (!vendorStats[vName]) {
-                    vendorStats[vName] = { total: 0, ud: 0, fs: 0, er: 0, act: 0, printed: 0 };
+                if (!contractorStats[cName]) {
+                    contractorStats[cName] = { total: 0, ud: 0, fs: 0, er: 0, act: 0, printed: 0 };
                 }
 
-                vendorStats[vName].total++;
+                contractorStats[cName].total++;
 
-                // Check Approvals & Printed
                 Object.keys(row).forEach(key => {
                     const col = key.toUpperCase();
                     const val = String(row[key]).toLowerCase();
                     const isApp = val.includes('approved') || val === 'yes' || val === 'y';
 
                     if (isApp) {
-                        if (col.includes('UD')) vendorStats[vName].ud++;
-                        if (col.includes('FS')) vendorStats[vName].fs++;
-                        if (col.includes('ER')) vendorStats[vName].er++;
-                        if (col.includes('ACT')) vendorStats[vName].act++;
+                        if (col.includes('UD')) { contractorStats[cName].ud++; globalStats.ud++; }
+                        if (col.includes('FS')) { contractorStats[cName].fs++; globalStats.fs++; }
+                        if (col.includes('ER')) { contractorStats[cName].er++; globalStats.er++; }
+                        if (col.includes('ACT')) { contractorStats[cName].act++; globalStats.act++; }
                     }
                     
-                    // Printed count based on PassInternalno column existence
                     if (col.includes('PASSINTERNALNO') && row[key] && String(row[key]).trim() !== "") {
-                        vendorStats[vName].printed++;
+                        contractorStats[cName].printed++;
+                        globalStats.printed++;
                     }
                 });
             });
 
-            renderTable();
+            updateUI();
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('vendorTableBody');
-            tbody.innerHTML = '';
+        function updateUI() {
+            // Summary Cards
+            document.getElementById('totalReceived').innerText = latestData.length;
+            document.getElementById('oneDayReceived').innerText = latestData.length - oldData.length;
 
-            Object.keys(vendorStats).sort().forEach(name => {
-                const v = vendorStats[name];
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 cursor-pointer transition-colors";
-                tr.onclick = () => showDetails(name);
-                tr.innerHTML = `
-                    <td class="px-6 py-4 font-medium text-blue-700">${name}</td>
-                    <td class="px-6 py-4 text-center text-gray-600">${v.total}</td>
-                    <td class="px-6 py-4 text-center font-bold text-green-600">${v.printed}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+            // Dashboard Details (Overall Status)
+            document.getElementById('totalUD').innerText = globalStats.ud;
+            document.getElementById('totalFS').innerText = globalStats.fs;
+            document.getElementById('totalER').innerText = globalStats.er;
+            document.getElementById('totalACT').innerText = globalStats.act;
+            document.getElementById('mainPrintedCount').innerText = globalStats.printed;
 
-        function showDetails(name) {
-            const v = vendorStats[name];
-            document.getElementById('modalTitle').innerText = name;
-            document.getElementById('modalUD').innerText = v.ud;
-            document.getElementById('modalFS').innerText = v.fs;
-            document.getElementById('modalER').innerText = v.er;
-            document.getElementById('modalACT').innerText = v.act;
-            document.getElementById('modalPrinted').innerText = v.printed;
-            toggleModal();
-        }
+            // In One Day Logic for Stages
+            document.getElementById('udDay').innerText = `+${globalStats.ud - globalOldStats.ud} today`;
+            document.getElementById('fsDay').innerText = `+${globalStats.fs - globalOldStats.fs} today`;
+            document.getElementById('erDay').innerText = `+${globalStats.er - globalOldStats.er} today`;
+            document.getElementById('actDay').innerText = `+${globalStats.act - globalOldStats.act} today`;
 
-        function toggleModal() {
-            const modal = document.getElementById('detailModal');
-            modal.classList.toggle('opacity-0');
-            modal.classList.toggle('pointer-events-none');
-            document.body.classList.toggle('modal-active');
-        }
-    </script>
-</body>
-</html>
+            // Table
+            const tbody =
